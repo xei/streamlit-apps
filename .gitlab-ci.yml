@@ -1,0 +1,33 @@
+variables:
+  IMAGE_HELLO_WORLD: $CONTAINER_REGISTRY_PATH/streamlit-apps/hello-world
+
+
+before_script:
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+
+build-hello-world:
+  stage: build
+  script:
+    - docker pull $IMAGE_HELLO_WORLD:latest || true
+    - docker build --cache-from $IMAGE_HELLO_WORLD:latest -f Dockerfile -t $IMAGE_HELLO_WORLD:latest hello-world/
+    - docker push $IMAGE_HELLO_WORLD:latest
+  only:
+    - master
+    #changes:
+      #- hello-world/*
+  tags:
+    - ml-cluster
+
+
+deploy-streamlit-stack:
+  stage: deploy
+  script:
+    - docker stack deploy -c docker-compose.yml --with-registry-auth streamlit
+  only:
+    - master
+  tags:
+    - ml-cluster
+  environment:
+    name: hello-world
+    url: https://ml.hosseinkhani.me/streamlit/hello-world
